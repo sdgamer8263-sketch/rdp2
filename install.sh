@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Sabhi interactive prompts ko bypass karne ke liye global setting
+# Sabhi interactive prompts aur purple chart ko bypass karne ke liye
 export DEBIAN_FRONTEND=noninteractive
 
 # ---------- COLORS ----------
@@ -33,12 +33,12 @@ success_msg() {
     read -r
 }
 
-# ---------- OPTION 1: RDP SETUP ----------
+# ---------- OPTION 1: RDP SETUP (FIXED) ----------
 install_rdp_full() {
     echo -e "${YELLOW}Starting Debian Full RDP Setup (XRDP + XFCE)...${NC}"
     apt-get update -y
     apt-get install -y sudo
-    # Is line se purple chart bypass hoga
+    # 'force-confdef' aur 'force-confold' us purple screen ko skip karte hain
     apt-get install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -yq xfce4 xfce4-goodies xrdp
     echo "xfce4-session" > ~/.xsession
     systemctl enable xrdp --now
