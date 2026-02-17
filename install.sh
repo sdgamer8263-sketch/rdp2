@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Sabhi interactive prompts ko background mein skip karne ke liye
+# Purple chart aur interactive prompts ko bypass karne ke liye
 export DEBIAN_FRONTEND=noninteractive
 
 # ---------- COLORS ----------
@@ -10,8 +10,7 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-# ---------- BANNER (NO CLEAR COMMAND) ----------
-# Glitch se bachne ke liye hum clear use nahi karenge
+# ---------- BANNER (NO CLEAR COMMAND TO PREVENT GLITCH) ----------
 echo -e "${CYAN}"
 cat <<'EOF'
  ██████╗██████╗  ██████╗  █████╗ ███╗   ███╗███████╗██████╗ 
@@ -21,7 +20,7 @@ cat <<'EOF'
 ██████╔╝██████╔╝╚██████╔╝██║  ██║██║ ╚═╝ ██║███████╗██║  ██║
 ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚═╝  ╚═╝
 EOF
-echo -e "${GREEN}         DEBIAN 11/12/13 RDP INSTALLER (GLITCH FIXED)${NC}"
+echo -e "${GREEN}         DEBIAN 11/12/13 RDP INSTALLER (INPUT FIX)${NC}"
 echo "======================================================="
 
 # ---------- MENU ----------
@@ -33,15 +32,15 @@ echo -e "${CYAN}4.${NC} System Clean & Update"
 echo -e "${RED}0.${NC} Exit"
 echo "-------------------------------------------------------"
 
-# Yahan script ruk jayegi aur aapka input mangegi
-echo -n "Type selection and press Enter: "
+# Glitch Fix: Simple input reading
+echo -n "Type number (1, 2, 3, or 4) and press Enter: "
 read -r m
 
 case "$m" in
     1)
-        echo -e "${YELLOW}Installing RDP...${NC}"
+        echo -e "${YELLOW}Installing RDP... Please wait (2-3 mins).${NC}"
         apt-get update -y
-        # Purple keyboard chart fix
+        # Force non-interactive for the purple keyboard chart
         apt-get install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -yq xfce4 xfce4-goodies xrdp
         echo "xfce4-session" > ~/.xsession
         systemctl enable xrdp --now
@@ -61,7 +60,7 @@ case "$m" in
     3)
         echo -e "${YELLOW}Installing Tailscale...${NC}"
         curl -fsSL https://tailscale.com/install.sh | sh
-        echo -e "${GREEN}Tailscale Installed!${NC}"
+        echo -e "${GREEN}Tailscale Installed! Run 'tailscale up' to connect.${NC}"
         ;;
     4)
         echo -e "${YELLOW}Cleaning System...${NC}"
@@ -72,6 +71,6 @@ case "$m" in
         exit 0
         ;;
     *)
-        echo -e "${RED}Error: '$m' is not a valid option.${NC}"
+        echo -e "${RED}Invalid Selection '$m'. Run again and type a number.${NC}"
         ;;
 esac
