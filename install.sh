@@ -2,7 +2,7 @@
 
 # =======================================
 #   AUTHOR    : SDGAMER
-#   TOOL      : DEBIAN 11/12/13 RDP INSTALLER (SILENT FIX)
+#   TOOL      : DEBIAN 11/12/13 RDP INSTALLER
 # =======================================
 
 # ---------- COLORS ----------
@@ -49,26 +49,28 @@ success_msg() {
     read -r < /dev/tty
 }
 
-# ---------- FULL RDP SETUP (SILENT KEYBOARD FIX) ----------
+# ---------- FULL RDP SETUP (STUCK SCREEN REMOVED) ----------
 install_rdp_full() {
     banner
     echo -e "${YELLOW}Starting Debian Full RDP Setup (XRDP + XFCE)...${NC}"
     
-    # 1. Password Setup (Type and press Enter)
-    echo -e "${CYAN}Set a password for 'root' user (RDP Login Password):${NC}"
+    # 1. Password Setup (Iske baad terminal stuck nahi hoga)
+    echo -e "${CYAN}Set a password for 'root' user (RDP Login ke liye):${NC}"
     passwd root
 
-    # 2. THE KEYBOARD FIX (Pre-selecting English US)
-    echo -e "${YELLOW}Setting Default Keyboard to English (US)...${NC}"
+    # 2. KEYBOARD BYPASS (English US Default)
+    # Ye commands system ko pehle hi answer de deti hain
+    echo -e "${YELLOW}Bypassing Keyboard Configuration...${NC}"
     export DEBIAN_FRONTEND=noninteractive
-    
-    # Ye commands blue screen ko bypass kar dengi
     apt-get update -y
     apt-get install -y debconf-utils
+    
+    # Pre-setting English (US)
     echo "keyboard-configuration keyboard-configuration/layout select English (US)" | debconf-set-selections
     echo "keyboard-configuration keyboard-configuration/layoutcode string us" | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/modelcode string pc105" | debconf-set-selections
 
-    # 3. Installing Desktop and RDP silently
+    # 3. Installing Desktop silently
     echo -e "${YELLOW}Installing Desktop Environment (Please wait)...${NC}"
     apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" xfce4 xfce4-goodies xrdp
 
@@ -77,14 +79,15 @@ install_rdp_full() {
     echo "xfce4-session" > ~/.xsession
     sudo adduser xrdp ssl-cert
     
-    # Permit Root login
+    # Permit Root login over RDP
     sudo sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config
     
     sudo systemctl restart xrdp
     
     unset DEBIAN_FRONTEND
     
-    echo -e "\n${GREEN}✔ DONE! Use Username 'root' and your password to login.${NC}"
+    echo -e "\n${GREEN}✔ DONE! Remote Desktop is ready.${NC}"
+    echo -e "${YELLOW}Login User: root${NC}"
     success_msg "Debian RDP Setup"
 }
 
