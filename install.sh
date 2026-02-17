@@ -12,7 +12,7 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-# ---------- OS DETECTION (STRICT DEBIAN) ----------
+# ---------- OS DETECTION ----------
 detect_debian() {
     if [ -f /etc/os-release ]; then
         . /etc/os-release
@@ -23,7 +23,7 @@ detect_debian() {
         
         VERSION_ID_CLEAN=$(echo $VERSION_ID | cut -d. -f1)
         if [[ "$VERSION_ID_CLEAN" != "11" && "$VERSION_ID_CLEAN" != "12" && "$VERSION_ID_CLEAN" != "13" ]]; then
-            echo -e "${RED}Error: Debian version $VERSION_ID is not supported. Use Debian 11, 12, or 13.${NC}"
+            echo -e "${RED}Error: Debian version $VERSION_ID is not supported.${NC}"
             exit 1
         fi
     else
@@ -56,31 +56,28 @@ success_msg() {
     read -r < /dev/tty
 }
 
-# ---------- FULL RDP SETUP (FIXED KEYBOARD ISSUE) ----------
+# ---------- FULL RDP SETUP (KEYBOARD FIX ADDED) ----------
 install_rdp_full() {
     echo -e "${YELLOW}Starting Debian Full RDP Setup (XRDP + XFCE)...${NC}"
+    echo -e "${CYAN}Note: Keyboard config will be set to 'US' automatically to avoid hanging.${NC}"
     
-    # Use noninteractive frontend to skip the blue keyboard layout screen
+    # --- KEYBOARD FIX START ---
+    # Isse wo blue screen (stuck hone wala menu) nahi aayega
     export DEBIAN_FRONTEND=noninteractive
     
     apt update -y
     apt install -y sudo 
     
-    # The fix: added -o Dpkg::Options flags to bypass configuration prompts
+    # Is command mein keyboard configuration ko bypass karne ke flags hain
     sudo apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" xfce4 xfce4-goodies xrdp
+    # --- KEYBOARD FIX END ---
 
-    # Debian Specific XRDP Configuration
     sudo systemctl enable xrdp --now
-    
-    # Session fix
     echo "xfce4-session" > ~/.xsession
-    
-    # Permissions
     sudo adduser xrdp ssl-cert
-    
     sudo systemctl restart xrdp
     
-    # Reset frontend back to default
+    # Dubara normal mode par laane ke liye
     unset DEBIAN_FRONTEND
     
     success_msg "Debian RDP Setup"
@@ -90,29 +87,25 @@ install_rdp_full() {
 browsers_menu() {
     banner
     echo -e "${CYAN}--- [2] WEB BROWSERS ---${NC}"
-    echo -e "${YELLOW}1.${NC} Google Chrome (Stable)"
-    echo -e "${YELLOW}2.${NC} Firefox ESR (Debian Default)"
+    echo -e "${YELLOW}1.${NC} Google Chrome"
+    echo -e "${YELLOW}2.${NC} Firefox ESR"
     echo -e "${YELLOW}3.${NC} Brave Browser"
     echo -e "${YELLOW}0.${NC} Back"
     echo -ne "${CYAN}Select: ${NC}"
     read -r b < /dev/tty
     case $b in
         1) 
-           apt update -y
-           apt install -y wget
+           apt update -y && apt install -y wget
            wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
            apt install -y ./google-chrome*.deb
            rm -f google-chrome*.deb; success_msg "Chrome" ;;
         2) 
-           apt update -y
-           apt install -y firefox-esr; success_msg "Firefox ESR" ;;
+           apt update -y && apt install -y firefox-esr; success_msg "Firefox ESR" ;;
         3) 
-           apt update -y
-           apt install -y curl gpg
+           apt update -y && apt install -y curl gpg
            curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
            echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main" | tee /etc/apt/sources.list.d/brave-browser-release.list
-           apt update -y
-           apt install -y brave-browser; success_msg "Brave" ;;
+           apt update -y && apt install -y brave-browser; success_msg "Brave" ;;
         0) main_menu ;;
         *) browsers_menu ;;
     esac
