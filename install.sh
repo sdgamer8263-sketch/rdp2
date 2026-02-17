@@ -2,7 +2,7 @@
 
 # =======================================
 #   AUTHOR    : SDGAMER
-#   TOOL      : DEBIAN 11/12/13 RDP INSTALLER
+#   TOOL      : DEBIAN 11/12/13 RDP INSTALLER (FIXED)
 # =======================================
 
 # ---------- COLORS ----------
@@ -56,30 +56,46 @@ success_msg() {
     read -r < /dev/tty
 }
 
-# ---------- FULL RDP SETUP (KEYBOARD FIX ADDED) ----------
+# ---------- FULL RDP SETUP (FIXED KEYBOARD & USER) ----------
 install_rdp_full() {
+    banner
     echo -e "${YELLOW}Starting Debian Full RDP Setup (XRDP + XFCE)...${NC}"
-    echo -e "${CYAN}Note: Keyboard config will be set to 'US' automatically to avoid hanging.${NC}"
     
-    # --- KEYBOARD FIX START ---
-    # Isse wo blue screen (stuck hone wala menu) nahi aayega
+    # 1. Password setup
+    echo -e "${CYAN}Set a password for the 'root' user (Login ke liye kaam aayega):${NC}"
+    passwd root
+
+    # 2. Keyboard Stuck Fix (Non-Interactive Mode)
     export DEBIAN_FRONTEND=noninteractive
     
+    echo -e "${YELLOW}Updating system and installing Desktop Environment...${NC}"
     apt update -y
     apt install -y sudo 
     
-    # Is command mein keyboard configuration ko bypass karne ke flags hain
+    # 3. Installation with bypass flags (Blue screen nahi aayegi)
     sudo apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" xfce4 xfce4-goodies xrdp
-    # --- KEYBOARD FIX END ---
 
+    # 4. XRDP Configuration
     sudo systemctl enable xrdp --now
+    
+    # Session fix to avoid login loops
     echo "xfce4-session" > ~/.xsession
+    
+    # Permissions for Debian
     sudo adduser xrdp ssl-cert
+    
+    # Root login permission for RDP
+    sudo sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config
+    
+    # Final Restart
     sudo systemctl restart xrdp
     
-    # Dubara normal mode par laane ke liye
+    # Reset Frontend
     unset DEBIAN_FRONTEND
     
+    echo -e "\n${GREEN}✔ RDP Setup Complete!${NC}"
+    echo -e "${YELLOW}Login Username: root${NC}"
+    echo -e "${YELLOW}Login Password: (The one you set above)${NC}"
     success_msg "Debian RDP Setup"
 }
 
@@ -87,7 +103,7 @@ install_rdp_full() {
 browsers_menu() {
     banner
     echo -e "${CYAN}--- [2] WEB BROWSERS ---${NC}"
-    echo -e "${YELLOW}1.${NC} Google Chrome"
+    echo -e "${YELLOW}1.${NC} Google Chrome (Stable)"
     echo -e "${YELLOW}2.${NC} Firefox ESR"
     echo -e "${YELLOW}3.${NC} Brave Browser"
     echo -e "${YELLOW}0.${NC} Back"
