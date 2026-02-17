@@ -2,7 +2,7 @@
 
 # =======================================
 #   AUTHOR    : SDGAMER
-#   TOOL      : DEBIAN 11/12/13 RDP INSTALLER (FIXED)
+#   TOOL      : DEBIAN 11/12/13 RDP INSTALLER (SILENT FIX)
 # =======================================
 
 # ---------- COLORS ----------
@@ -18,12 +18,6 @@ detect_debian() {
         . /etc/os-release
         if [ "$ID" != "debian" ]; then
             echo -e "${RED}Error: Your OS is $ID. This script is ONLY for Debian 11, 12, or 13!${NC}"
-            exit 1
-        fi
-        
-        VERSION_ID_CLEAN=$(echo $VERSION_ID | cut -d. -f1)
-        if [[ "$VERSION_ID_CLEAN" != "11" && "$VERSION_ID_CLEAN" != "12" && "$VERSION_ID_CLEAN" != "13" ]]; then
-            echo -e "${RED}Error: Debian version $VERSION_ID is not supported.${NC}"
             exit 1
         fi
     else
@@ -46,7 +40,6 @@ cat <<'EOF'
 EOF
 echo -e "${GREEN}         DEBIAN 11/12/13 RDP INSTALLER${NC}"
 echo "======================================="
-echo
 }
 
 # ---------- HELPERS ----------
@@ -56,46 +49,42 @@ success_msg() {
     read -r < /dev/tty
 }
 
-# ---------- FULL RDP SETUP (FIXED KEYBOARD & USER) ----------
+# ---------- FULL RDP SETUP (SILENT KEYBOARD FIX) ----------
 install_rdp_full() {
     banner
     echo -e "${YELLOW}Starting Debian Full RDP Setup (XRDP + XFCE)...${NC}"
     
-    # 1. Password setup
-    echo -e "${CYAN}Set a password for the 'root' user (Login ke liye kaam aayega):${NC}"
+    # 1. Password Setup (Type and press Enter)
+    echo -e "${CYAN}Set a password for 'root' user (RDP Login Password):${NC}"
     passwd root
 
-    # 2. Keyboard Stuck Fix (Non-Interactive Mode)
+    # 2. THE KEYBOARD FIX (Pre-selecting English US)
+    echo -e "${YELLOW}Setting Default Keyboard to English (US)...${NC}"
     export DEBIAN_FRONTEND=noninteractive
     
-    echo -e "${YELLOW}Updating system and installing Desktop Environment...${NC}"
-    apt update -y
-    apt install -y sudo 
-    
-    # 3. Installation with bypass flags (Blue screen nahi aayegi)
-    sudo apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" xfce4 xfce4-goodies xrdp
+    # Ye commands blue screen ko bypass kar dengi
+    apt-get update -y
+    apt-get install -y debconf-utils
+    echo "keyboard-configuration keyboard-configuration/layout select English (US)" | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/layoutcode string us" | debconf-set-selections
 
-    # 4. XRDP Configuration
+    # 3. Installing Desktop and RDP silently
+    echo -e "${YELLOW}Installing Desktop Environment (Please wait)...${NC}"
+    apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" xfce4 xfce4-goodies xrdp
+
+    # 4. XRDP Config
     sudo systemctl enable xrdp --now
-    
-    # Session fix to avoid login loops
     echo "xfce4-session" > ~/.xsession
-    
-    # Permissions for Debian
     sudo adduser xrdp ssl-cert
     
-    # Root login permission for RDP
+    # Permit Root login
     sudo sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config
     
-    # Final Restart
     sudo systemctl restart xrdp
     
-    # Reset Frontend
     unset DEBIAN_FRONTEND
     
-    echo -e "\n${GREEN}✔ RDP Setup Complete!${NC}"
-    echo -e "${YELLOW}Login Username: root${NC}"
-    echo -e "${YELLOW}Login Password: (The one you set above)${NC}"
+    echo -e "\n${GREEN}✔ DONE! Use Username 'root' and your password to login.${NC}"
     success_msg "Debian RDP Setup"
 }
 
@@ -103,7 +92,7 @@ install_rdp_full() {
 browsers_menu() {
     banner
     echo -e "${CYAN}--- [2] WEB BROWSERS ---${NC}"
-    echo -e "${YELLOW}1.${NC} Google Chrome (Stable)"
+    echo -e "${YELLOW}1.${NC} Google Chrome"
     echo -e "${YELLOW}2.${NC} Firefox ESR"
     echo -e "${YELLOW}3.${NC} Brave Browser"
     echo -e "${YELLOW}0.${NC} Back"
