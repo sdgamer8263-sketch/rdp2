@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # =======================================
-#   AUTHOR    : SDGAMER
+#   AUTHOR    : SDGAMER (Enhanced)
 #   TOOL      : DEBIAN 11/12/13 RDP INSTALLER
 # =======================================
 
@@ -12,12 +12,18 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
+# ---------- ROOT CHECK ----------
+if [[ $EUID -ne 0 ]]; then
+   echo -e "${RED}Error: This script must be run as root! Use 'sudo -i' or 'sudo su'.${NC}"
+   exit 1
+fi
+
 # ---------- OS DETECTION ----------
 detect_debian() {
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         if [ "$ID" != "debian" ]; then
-            echo -e "${RED}Error: Your OS is $ID. This script is ONLY for Debian 11, 12, or 13!${NC}"
+            echo -e "${RED}Error: Your OS is $ID. This script is ONLY for Debian!${NC}"
             exit 1
         fi
     else
@@ -45,49 +51,56 @@ echo "======================================="
 # ---------- HELPERS ----------
 success_msg() {
     echo -e "\n${GREEN}✔ $1 Process Completed Successfully!${NC}"
-    echo -e "${YELLOW}Press Enter to return...${NC}"
+    echo -e "${YELLOW}Press Enter to return to Menu...${NC}"
     read -r < /dev/tty
 }
 
-# ---------- FULL RDP SETUP (STUCK SCREEN REMOVED) ----------
+# ---------- FULL RDP SETUP ----------
 install_rdp_full() {
     banner
     echo -e "${YELLOW}Starting Debian Full RDP Setup (XRDP + XFCE)...${NC}"
     
-    # 1. Password Setup (Iske baad terminal stuck nahi hoga)
-    echo -e "${CYAN}Set a password for 'root' user (RDP Login ke liye):${NC}"
+    # 1. Password Setup
+    echo -e "${CYAN}Set a password for 'root' user (This will be your RDP Login):${NC}"
     passwd root
 
-    # 2. KEYBOARD BYPASS (English US Default)
-    # Ye commands system ko pehle hi answer de deti hain
-    echo -e "${YELLOW}Bypassing Keyboard Configuration...${NC}"
+    # 2. KEYBOARD & DEBCONF BYPASS
+    echo -e "${YELLOW}Configuring non-interactive environment...${NC}"
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -y
     apt-get install -y debconf-utils
-    
-    # Pre-setting English (US)
+
     echo "keyboard-configuration keyboard-configuration/layout select English (US)" | debconf-set-selections
     echo "keyboard-configuration keyboard-configuration/layoutcode string us" | debconf-set-selections
     echo "keyboard-configuration keyboard-configuration/modelcode string pc105" | debconf-set-selections
 
-    # 3. Installing Desktop silently
-    echo -e "${YELLOW}Installing Desktop Environment (Please wait)...${NC}"
+    # 3. Installing Desktop & XRDP
+    echo -e "${YELLOW}Installing XFCE4 and XRDP (This may take a few minutes)...${NC}"
     apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" xfce4 xfce4-goodies xrdp
 
-    # 4. XRDP Config
+    # 4. XRDP Configuration & Optimizations
     sudo systemctl enable xrdp --now
     echo "xfce4-session" > ~/.xsession
     sudo adduser xrdp ssl-cert
     
-    # Permit Root login over RDP
+    # Permit Root login & Fix Black Screen
     sudo sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config
     
+    # FIX: Remove "Color Management" authentication popups
+    cat <<EOF > /etc/polkit-1/localauthority/50-network-manager.d/45-allow-colord.pkla
+[Allow Colord]
+Identity=unix-user:*
+Action=org.freedesktop.color-manager.create-device;org.freedesktop.color-manager.create-profile;org.freedesktop.color-manager.delete-device;org.freedesktop.color-manager.delete-profile;org.freedesktop.color-manager.modify-device;org.freedesktop.color-manager.modify-profile
+ResultAny=no
+ResultInactive=no
+ResultActive=yes
+EOF
+
     sudo systemctl restart xrdp
-    
     unset DEBIAN_FRONTEND
     
     echo -e "\n${GREEN}✔ DONE! Remote Desktop is ready.${NC}"
-    echo -e "${YELLOW}Login User: root${NC}"
+    echo -e "${YELLOW}RDP Port: 3389 | User: root${NC}"
     success_msg "Debian RDP Setup"
 }
 
@@ -95,7 +108,7 @@ install_rdp_full() {
 browsers_menu() {
     banner
     echo -e "${CYAN}--- [2] WEB BROWSERS ---${NC}"
-    echo -e "${YELLOW}1.${NC} Google Chrome"
+    echo -e "${YELLOW}1.${NC} Google Chrome (64-bit)"
     echo -e "${YELLOW}2.${NC} Firefox ESR"
     echo -e "${YELLOW}3.${NC} Brave Browser"
     echo -e "${YELLOW}0.${NC} Back"
@@ -120,15 +133,30 @@ browsers_menu() {
     browsers_menu
 }
 
+# ---------- CHECK STATUS ----------
+check_status() {
+    banner
+    echo -e "${CYAN}--- SYSTEM STATUS ---${NC}"
+    if systemctl is-active --quiet xrdp; then
+        echo -e "XRDP Service: ${GREEN}RUNNING${NC}"
+    else
+        echo -e "XRDP Service: ${RED}STOPPED${NC}"
+    fi
+    echo -e "IP Address: ${YELLOW}$(hostname -I | awk '{print $1}')${NC}"
+    echo "---------------------------------------"
+    success_msg "Status Check"
+}
+
 # ---------- MAIN MENU ----------
 main_menu() {
     banner
-    echo -e "${YELLOW}OS:${NC} Debian $VERSION_ID | ${YELLOW}Verified:${NC} Yes"
+    echo -e "${YELLOW}OS:${NC} Debian $VERSION_ID | ${YELLOW}User:${NC} $USER"
     echo "---------------------------------------"
     echo -e "${CYAN}1.${NC} INSTALL FULL RDP SETUP (XRDP + XFCE)"
-    echo -e "${CYAN}2.${NC} Web Browsers"
-    echo -e "${CYAN}3.${NC} Install Tailscale"
+    echo -e "${CYAN}2.${NC} Web Browsers (Chrome/Firefox/Brave)"
+    echo -e "${CYAN}3.${NC} Install Tailscale (VPN/Mesh)"
     echo -e "${CYAN}4.${NC} System Clean & Update"
+    echo -e "${CYAN}5.${NC} Check RDP Status / IP"
     echo -e "${RED}0. Exit${NC}"
     echo "---------------------------------------"
     echo -ne "${CYAN}Choose: ${NC}"
@@ -139,6 +167,7 @@ main_menu() {
         2) browsers_menu ;;
         3) apt update -y && curl -fsSL https://tailscale.com/install.sh | sh && tailscale up; success_msg "Tailscale" ;;
         4) apt update -y && apt upgrade -y && apt autoremove -y; success_msg "System Clean" ;;
+        5) check_status ;;
         0) exit 0 ;;
         *) main_menu ;;
     esac
