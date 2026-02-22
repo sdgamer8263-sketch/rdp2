@@ -143,7 +143,7 @@ main_menu() {
         2) browsers_menu ;;
         3) apt update -y && apt upgrade -y && apt autoremove -y; success_msg "System Clean" ;;
         0) bash <(curl -sL https://raw.githubusercontent.com/sdgamer8263-sketch/tooler/main/run.sh)
-        exit 0 ;;
+         ;;
         *) main_menu ;;
     esac
     main_menu
