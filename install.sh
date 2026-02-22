@@ -142,8 +142,7 @@ main_menu() {
         1) install_rdp_full ;;
         2) browsers_menu ;;
         3) apt update -y && apt upgrade -y && apt autoremove -y; success_msg "System Clean" ;;
-        0) exit 0
-         ;;
+        0) exit 0  ;;
         *) main_menu ;;
     esac
     main_menu
